@@ -1,0 +1,27 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+    <PropertyGroup>
+        <TargetFramework>net6.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Swashbuckle.AspNetCore" Version="6.2.3" />
+        
+        <PackageReference Include="GraphQL.SystemTextJson" Version="5.3.0" />
+        <PackageReference Include="GraphQL.MemoryCache" Version="5.3.0" />
+        <PackageReference Include="GraphQL.DataLoader" Version="5.3.0" />
+		<PackageReference Include="GraphQL.MicrosoftDI" Version="5.3.0" />
+
+		<PackageReference Include="GraphQL.Server.Transports.AspNetCore" Version="6.1.0" />
+        <PackageReference Include="GraphQL.Server.Ui.GraphiQL" Version="6.1.0" />
+        <PackageReference Include="GraphQL.Server.Ui.Altair" Version="6.1.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="Core\Application\" />
+      <Folder Include="Types\" />
+    </ItemGroup>
+
+</Project>
