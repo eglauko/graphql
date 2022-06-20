@@ -1,4 +1,5 @@
 using Api.GraphQL.AspNetCore;
+using Api.Infra.Persistence;
 using GraphQL;
 using GraphQL.MicrosoftDI;
 using GraphQL.Server;
@@ -32,14 +33,21 @@ builder.Services.AddGraphQL(b => b
     .AddSystemTextJson()
     .AddErrorInfoProvider(opt => opt.ExposeExceptionStackTrace = true)
     .AddAutoSchema<object>()
-    //.AddSchema<StarWarsSchema>()
+    .AddSchema<ApiSchema>()
+    .AddAutoClrMappings()
     //.AddGraphTypes(typeof(StarWarsSchema).Assembly)
     );
+
+builder.Services.AddHttpContextAccessor();
+
+builder.Services.AddScoped<AppDbContext>();
+
 
 var app = builder.Build();
 
 app.UseAuthorization();
 
+app.UseGraphQL<ISchema>();
 app.MapControllers();
 
 if (app.Environment.IsDevelopment())
