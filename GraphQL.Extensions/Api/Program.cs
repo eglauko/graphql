@@ -14,12 +14,12 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 /*
- *  IdÈias para fazer.
- *  Criar um tipo de schema padr„o genÈrico que busca do service provider um builder de query e mutation.
- *  Ver se pode ser um builder sÛ ou se È melhor separar.
+ *  Id√©ias para fazer.
+ *  Criar um tipo de schema padr√£o gen√©rico que busca do service provider um builder de query e mutation.
+ *  Ver se pode ser um builder s√≥ ou se √© melhor separar.
  *  Criar um componente que registra queries.
- *  Tentar usar um ObjectType genÈrico para evitar a necessidade de ficar criando tipos.
- *  Verificar os filtros para poderem ser tambÈm genÈricos
+ *  Tentar usar um ObjectType gen√©rico para evitar a necessidade de ficar criando tipos.
+ *  Verificar os filtros para poderem ser tamb√©m gen√©ricos
  *  ---
  *  Estudar como paginar.
  *  ---
