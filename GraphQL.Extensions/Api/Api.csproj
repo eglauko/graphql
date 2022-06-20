@@ -7,6 +7,7 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="6.0.6" />
         <PackageReference Include="Swashbuckle.AspNetCore" Version="6.2.3" />
         
         <PackageReference Include="GraphQL.SystemTextJson" Version="5.3.0" />
@@ -20,7 +21,6 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Folder Include="Core\Application\" />
       <Folder Include="Types\" />
     </ItemGroup>
 
