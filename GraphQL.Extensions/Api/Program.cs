@@ -26,15 +26,16 @@ builder.Services.AddSwaggerGen();
  *  Testar com InMemoryDbContext.
  */
 
+builder.Services.AddGraphQLExtensions();
 
 builder.Services.AddGraphQL(b => b
     .AddHttpMiddleware<ISchema>()
+    .AddSchema<ApiSchema>()
     .AddUserContextBuilder(httpContext => new GraphQLUserContext { User = httpContext.User })
     .AddSystemTextJson()
     .AddErrorInfoProvider(opt => opt.ExposeExceptionStackTrace = true)
-    .AddAutoSchema<object>()
-    .AddSchema<ApiSchema>()
-    .AddAutoClrMappings()
+    //.AddAutoSchema<object>()
+    //.AddAutoClrMappings()
     //.AddGraphTypes(typeof(StarWarsSchema).Assembly)
     );
 
