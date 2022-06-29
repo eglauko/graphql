@@ -1,4 +1,5 @@
 ﻿using System.Collections;
+using System.Linq.Expressions;
 using Api.Core.Application.Commons;
 using Api.Core.Application.Lojas;
 using Api.Core.Domain.Lojas;
@@ -22,25 +23,22 @@ public class ApiSchema : Schema
             Name = "Lojas"
         };
         
-        RegisterType(graphTypeProvider.GetQueryType<Empresa>());
-        //RegisterType(graphTypeProvider.GetInputType<EmpresaFilter>());
-        //RegisterType(graphTypeProvider.GetInputType<IdFilter>());
-        
         var field = new FieldType
         {
             Name = "empresas",
             Description = "Empresas",
             Type = graphTypeProvider.GetQueryType<Empresa>().GetType(),
+            ResolvedType = graphTypeProvider.GetQueryType<Empresa>(),
             Arguments = new QueryArguments(
-                new QueryArgument(graphTypeProvider.GetInputType<IdFilter>()) {Name = "id"},
-                new QueryArgument(graphTypeProvider.GetInputType<EmpresaFilter>()) {Name = "filter"}
+                graphTypeProvider.CreateArgument<IdFilter>("id"),
+                graphTypeProvider.CreateArgument<EmpresaFilter>("filter")
             ),
             Resolver = new FuncFieldResolver<Empresa, object>(Resolver)
         };
+        
         rootQueryType.AddField(field);
 
         Query = rootQueryType;
-        //Mutation = new ObjectGraphType();
     }
 
     private static object Resolver(IResolveFieldContext<object?> arg)
@@ -98,6 +96,7 @@ public class GraphTypeProvider
 
     public ObjectGraphType<T> GetQueryType<T>()
     {
+        
         if (types.TryGetValue(typeof(T), out var obj))
             return (ObjectGraphType<T>) obj;
 
@@ -151,7 +150,7 @@ public class GraphTypeProvider
         if (string.IsNullOrEmpty(gtype.Name))
             gtype.Name = type.Name.ToLower();
 
-        foreach (var property in type.GetTypeInfo().DeclaredProperties)
+        foreach (var property in type.GetTypeInfo().GetRuntimeProperties())
         {
             var name = property.Name.ToLower();
             if (gtype.HasField(name))
@@ -162,10 +161,11 @@ public class GraphTypeProvider
             var field = new FieldType
             {
                 Name = name,
+                Type = propertGType.GetType(),
                 ResolvedType = propertGType,
                 Description = null,
                 Arguments = null,
-                Resolver = null
+                Resolver = new PropertyFieldResolver(property)
             };
             gtype.AddField(field);
         }
@@ -179,7 +179,7 @@ public class GraphTypeProvider
         // busca do dicionário
         if (types.TryGetValue(propertyType, out var obj))
             return (IGraphType) obj;
-
+    
         IGraphType graphType;
         
         // verificar se é enum, tratar como enum.
@@ -198,14 +198,17 @@ public class GraphTypeProvider
                  typeof(IEnumerable).IsAssignableFrom(propertyType.GetGenericTypeDefinition()))
         {
             var type = propertyType.GenericTypeArguments[0];
-            var gtype = GetFieldType(type).GetType();
+            var gtype = GetFieldType(type);
         
-            graphType = (IGraphType) typeof(ListGraphType<>)
-                .MakeGenericType(gtype)
+            var listType = (ListGraphType) typeof(ListGraphType<>)
+                .MakeGenericType(gtype.GetType())
                 .GetConstructors()
                 .First(c => c.GetParameters().Length == 0)
                 .Invoke(Array.Empty<object>());
-            
+
+            listType.ResolvedType = gtype;
+
+            graphType = listType;
             types[propertyType] = graphType;
         }
         else
@@ -214,6 +217,17 @@ public class GraphTypeProvider
         }
         
         return graphType;
+    }
+    
+    public QueryArgument CreateArgument<TInputType>(string name, string? description = null)
+    {
+        var inputType = GetInputType<TInputType>();
+        return new QueryArgument(inputType.GetType())
+        {
+            Name = name,
+            Description = description,
+            ResolvedType = inputType
+        };
     }
 }
 
@@ -361,7 +375,7 @@ internal static class TypeEmiter
     internal static Type EmitInputType(Type type)
     {
         TypeBuilder typeBuilder = GetTypeBuilder(
-            type.Name + "InputGraphType",
+            type.Name + "InputType",
             typeof(InputObjectGraphType<>).MakeGenericType(type));
 
         return typeBuilder.CreateType()!;
@@ -379,4 +393,27 @@ internal static class TypeEmiter
                                              MethodAttributes.RTSpecialName);
         return typeBuilder;
     }
+}
+
+internal class PropertyFieldResolver : IFieldResolver
+{
+    private readonly Func<object?, object?> readProperty;
+
+    public PropertyFieldResolver(PropertyInfo propertyInfo)
+    {
+        var lambdaParameter = Expression.Parameter(typeof(object));
+        var cast = Expression.Convert(lambdaParameter, propertyInfo.DeclaringType!);
+        var memberAcess = Expression.MakeMemberAccess(cast, propertyInfo);
+        
+        // check if property type is an struct
+        Expression body = propertyInfo.PropertyType.IsValueType
+            ? Expression.Convert(memberAcess, typeof(object))
+            : memberAcess;
+        
+        var lambda = Expression.Lambda<Func<object?, object?>>(body, lambdaParameter);
+        readProperty = lambda.Compile();
+    }
+    
+    public ValueTask<object?> ResolveAsync(IResolveFieldContext context) 
+        => ValueTask.FromResult(readProperty(context.Source));
 }
