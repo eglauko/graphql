@@ -34,10 +34,7 @@ builder.Services.AddGraphQL(b => b
     .AddUserContextBuilder(httpContext => new GraphQLUserContext { User = httpContext.User })
     .AddSystemTextJson()
     .AddErrorInfoProvider(opt => opt.ExposeExceptionStackTrace = true)
-    //.AddAutoSchema<object>()
-    //.AddAutoClrMappings()
-    //.AddGraphTypes(typeof(StarWarsSchema).Assembly)
-    );
+);
 
 builder.Services.AddHttpContextAccessor();
 
