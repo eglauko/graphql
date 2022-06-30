@@ -27,8 +27,8 @@ namespace Api.Infra.Persistence
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            modelBuilder.Entity<Empresa>();
-            modelBuilder.Entity<Loja>();
+            modelBuilder.Entity<Empresa>().HasKey(e => e.Id);
+            modelBuilder.Entity<Loja>().HasKey(l => l.Id);
             modelBuilder.Owned<Endereco>();
         }
     }
