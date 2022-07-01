@@ -18,8 +18,7 @@ builder.Services.AddSwaggerGen();
  *  Criar um tipo de schema padrão genérico que busca do service provider um builder de query e mutation.
  *  Ver se pode ser um builder só ou se é melhor separar.
  *  Criar um componente que registra queries.
- *  Tentar usar um ObjectType genérico para evitar a necessidade de ficar criando tipos.
- *  Verificar os filtros para poderem ser também genéricos
+ *  
  *  ---
  *  Estudar como paginar.
  *  ---

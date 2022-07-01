@@ -1,4 +1,5 @@
-﻿using Api.Core.SeedWork;
+﻿using Api.Core.Domain.Localizacoes;
+using Api.Core.SeedWork;
 
 namespace Api.Core.Domain.Lojas
 {
@@ -8,7 +9,7 @@ namespace Api.Core.Domain.Lojas
 
         public string Cnpj { get; set; }
 
-        public string Endereco { get; set; }
+        public Endereco Endereco { get; set; }
 
         public string Telefone { get; set; }
     }

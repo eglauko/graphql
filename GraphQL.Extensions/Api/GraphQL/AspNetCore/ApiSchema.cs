@@ -7,7 +7,6 @@ using Api.Infra.Persistence;
 using GraphQL;
 using GraphQL.Types;
 using Microsoft.EntityFrameworkCore;
-using System.Numerics;
 using System.Reflection;
 using System.Reflection.Emit;
 using GraphQL.Resolvers;
@@ -27,8 +26,8 @@ public class ApiSchema : Schema
         {
             Name = "empresas",
             Description = "Empresas",
-            Type = graphTypeProvider.GetQueryType<Empresa>().GetType(),
-            ResolvedType = graphTypeProvider.GetQueryType<Empresa>(),
+            Type = graphTypeProvider.GetListGraphType<Empresa>().GetType(),
+            ResolvedType = graphTypeProvider.GetListGraphType<Empresa>(),
             Arguments = new QueryArguments(
                 graphTypeProvider.CreateArgument<IdFilter>("id"),
                 graphTypeProvider.CreateArgument<EmpresaFilter>("filter")
@@ -63,55 +62,62 @@ public class ApiSchema : Schema
 public class GraphTypeProvider
 {
     private readonly IGraphTypeConfigurers configurers;
-
-    private readonly Dictionary<Type, object> types = new()
-    {
-        {typeof(string), new StringGraphType()},
-        {typeof(int), new IntGraphType()},
-        {typeof(long), new LongGraphType()},
-        {typeof(float), new FloatGraphType()},
-        {typeof(double), new FloatGraphType()},
-        {typeof(decimal), new DecimalGraphType()},
-        {typeof(DateTime), new DateTimeGraphType()},
-        {typeof(DateOnly), new DateOnlyGraphType()},
-        {typeof(DateTimeOffset), new DateTimeOffsetGraphType()},
-        {typeof(TimeSpan), new TimeSpanMillisecondsGraphType()},
-        {typeof(TimeOnly), new TimeOnlyGraphType()},
-        {typeof(bool), new BooleanGraphType()},
-        {typeof(BigInteger), new BigIntGraphType()},
-        {typeof(byte), new ByteGraphType()},
-        {typeof(short), new ShortGraphType()},
-        {typeof(sbyte), new SByteGraphType()},
-        {typeof(ushort), new UShortGraphType()},
-        {typeof(uint), new UIntGraphType()},
-        {typeof(ulong), new ULongGraphType()},
-        {typeof(Guid), new GuidGraphType()},
-        {typeof(Uri), new UriGraphType()},
-    };
+    private readonly Dictionary<Type, object> types;
 
     public GraphTypeProvider(IGraphTypeConfigurers configurers)
     {
         this.configurers = configurers;
+        types = new();
+        foreach (var keyValuePair in SchemaTypes.BuiltInScalarMappings)
+        {
+            types[keyValuePair.Key] = keyValuePair.Value
+                .GetConstructors()
+                .First(c => c.GetParameters().Length == 0)
+                .Invoke(null);
+        }
     }
 
     public ObjectGraphType<T> GetQueryType<T>()
     {
+        var type = typeof(T);
         
-        if (types.TryGetValue(typeof(T), out var obj))
+        if (types.TryGetValue(type, out var obj))
             return (ObjectGraphType<T>) obj;
 
-        var gtype = (ObjectGraphType<T>) TypeEmiter.EmitQueryType(typeof(T))
+        var gtype = (ObjectGraphType<T>) TypeEmiter.EmitQueryType(type)
             .GetConstructors()
             .First(c => c.GetParameters().Length == 0)
             .Invoke(null);
-
+        types[typeof(T)] = gtype;
+        
         configurers.GetConfigurer<T>()?.Configure(gtype);
         ConfigureGraphType(gtype, typeof(T));
 
-        types[typeof(T)] = gtype;
         return gtype;
     }
-    
+
+    public ListGraphType GetListGraphType<T>()
+    {
+        var mtype = typeof(T);
+        var etype = typeof(IEnumerable<>).MakeGenericType(mtype);
+        
+        if (types.TryGetValue(etype, out var obj))
+            return (ListGraphType) obj;
+        
+        var graphType = GetQueryType<T>();
+        
+        var listType = (ListGraphType) typeof(ListGraphType<>)
+            .MakeGenericType(graphType.GetType())
+            .GetConstructors()
+            .First(c => c.GetParameters().Length == 0)
+            .Invoke(Array.Empty<object>());
+
+        listType.ResolvedType = graphType;
+
+        types[etype] = listType;
+        return listType;
+    }
+
     public InputObjectGraphType<T> GetInputType<T>()
     {
         if (types.TryGetValue(typeof(T), out var obj))
@@ -121,11 +127,11 @@ public class GraphTypeProvider
             .GetConstructors()
             .First(c => c.GetParameters().Length == 0)
             .Invoke(null);
-
+        types[typeof(T)] = gtype;
+        
         configurers.GetConfigurer<T>()?.Configure(gtype);
         ConfigureGraphType(gtype, typeof(T));
-
-        types[typeof(T)] = gtype;
+        
         return gtype;
     }
 
@@ -138,10 +144,9 @@ public class GraphTypeProvider
             .GetConstructors()
             .First(c => c.GetParameters().Length == 0)
             .Invoke(null);
+        types[type] = gtype;
         
         ConfigureGraphType(gtype, type);
-        
-        types[type] = gtype;
         return gtype;
     }
 
